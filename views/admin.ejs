@@ -14,10 +14,15 @@
     <div class="container mt-5">
         <h1 class="text-center mb-4">Admin Panel</h1>
 
+        <% if (error) { %>
+            <div class="alert alert-danger" role="alert">
+                <%= error %>
+            </div>
+        <% } %>
 
-        <% if (users.length === 0) { %>
+        <% if (!error && users.length === 0) { %>
             <p>No users found.</p>
-        <% } else { %> 
+        <% } else if (!error) { %> 
             <div class="table-responsive">
                 <table class="table">
                     <thead>
