@@ -6,14 +6,14 @@ const path = require('path');  // Add this line to work with paths
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-const { ObjectId } = require('mongodb'); 
+const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const saltRounds = 12;
 
 const port = process.env.PORT || 3000;
 
 const app = express();
-app.set('view engine', 'ejs'); 
+app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views')); // Set the path for views
 const Joi = require("joi");
 
@@ -61,9 +61,9 @@ app.use((req, res, next) => {
 
 
 app.get('/', (req, res) => {
-    res.render('index', { 
+    res.render('index', {
         // Pass the entire user object
-        authenticated: req.session.authenticated, 
+        authenticated: req.session.authenticated,
         user: res.locals.user,  // This includes username, userType, etc.
     });
 });
@@ -126,28 +126,28 @@ app.post('/submitUser', async (req, res) => {
         res.render("signup", { error: validationResult.error.details[0].message }); // Render signup.ejs WITH the error message from Joi
         return;
     }
-    const existingUser = await userCollection.findOne({ email }); 
+    const existingUser = await userCollection.findOne({ email });
     if (existingUser) {
-      // Render signup.ejs with an error message
-      return res.render('signup', { error: 'Error: Email already in use.' }); 
+        // Render signup.ejs with an error message
+        return res.render('signup', { error: 'Error: Email already in use.' });
     }
 
 
     var hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    await userCollection.insertOne({ 
-        username: username, 
-        password: hashedPassword, 
+    await userCollection.insertOne({
+        username: username,
+        password: hashedPassword,
         email: email,
         userType: 'user' // Add userType: user
-      });
+    });
     console.log("Inserted user");
 
     req.session.authenticated = true;
-    req.session.user = {  
+    req.session.user = {
         username: username,
-        userType: "user", 
-        _id: new ObjectId() 
+        userType: "user",
+        _id: new ObjectId()
     };
     req.session.cookie.maxAge = expireTime;
     res.redirect('/members');
@@ -160,7 +160,7 @@ app.post('/loggingin', async (req, res) => {
         // Validate input using Joi
         const schema = Joi.object({
             email: Joi.string().email().required(),
-            password: Joi.string().required(), 
+            password: Joi.string().required(),
         });
         const validationResult = schema.validate({ email, password });
         if (validationResult.error) {
@@ -182,7 +182,7 @@ app.post('/loggingin', async (req, res) => {
         };
         req.session.cookie.maxAge = expireTime;
 
-        res.redirect('/members'); 
+        res.redirect('/members');
 
     } catch (err) {
         console.error("Error in login:", err);
@@ -207,9 +207,9 @@ app.get('/members', (req, res) => {
     const images = [
         { id: 1, src: '/gandalf.jpg', name: 'Gandalf' },
         { id: 2, src: '/hermoine.jpg', name: 'Hermoine' },
-        { id: 3, src: '/merlin.jpg', name: 'Merlin'}
+        { id: 3, src: '/merlin.jpg', name: 'Merlin' }
     ];
-    res.render('members', { user: req.session.user, images: images}); 
+    res.render('members', { user: req.session.user, images: images });
 });
 
 const isAdmin = (req, res, next) => {
@@ -220,20 +220,20 @@ const isAdmin = (req, res, next) => {
         if (!req.session.authenticated) { // User is not logged in
             res.redirect('/login'); // Redirect to login with error message
         } else { // User is logged in but not an admin
-            res.status(403).render('admin', { 
-                users: [], 
-                error: "Forbidden (403): You are not authorized to access this page." 
+            res.status(403).render('admin', {
+                users: [],
+                error: "Forbidden (403): You are not authorized to access this page."
             });
         }
     }
 };
-app.get('/admin', isAdmin, async (req, res) => { // use middleware 
+app.get('/admin', isAdmin, async (req, res) => {
     try {
-      const users = await userCollection.find({}).toArray();
-      res.render('admin', { users }); // Render admin.ejs template
+        const users = await userCollection.find({}).toArray();
+        res.render('admin', { users, error: null }); // Pass error = null
     } catch (err) {
-      console.error(err);
-      res.status(500).send("Internal Server Error");
+        console.error(err);
+        res.status(500).send("Internal Server Error");
     }
 });
 
@@ -246,7 +246,7 @@ app.get('/promote/:userId', isAdmin, async (req, res) => { //isAdmin middleware
             { _id: new ObjectId(userId) },
             { $set: { userType: 'admin' } }
         );
-        
+
         res.redirect('/admin');
     } catch (err) {
         console.error(err);
