@@ -1,6 +1,8 @@
 require('dotenv').config();
 require("./utils.js");
-
+const path = require('path');  // Add this line to work with paths
+app.set('view engine', 'ejs'); 
+app.set('views', path.join(__dirname, 'views')); // Set the path for views
 
 const express = require('express');
 const session = require('express-session');
@@ -49,21 +51,28 @@ app.use(session({
 }
 ));
 
+// app.get('/', (req, res) => {
+//     if (req.session.authenticated) {
+//         res.send(`
+//         <h1>Hello, ${req.session.username}</h1> 
+//         <a href="/members">Members Area</a>
+//         <a href="/logout">Logout</a>
+//       `);
+//     } else {
+//         res.send(`
+//         <h1>Welcome!</h1>
+//         <a href="/createUser">Sign Up</a>
+//         <a href="/login">Login</a>
+//       `);
+//     }
+// });
+
 app.get('/', (req, res) => {
-    if (req.session.authenticated) {
-        res.send(`
-        <h1>Hello, ${req.session.username}</h1> 
-        <a href="/members">Members Area</a>
-        <a href="/logout">Logout</a>
-      `);
-    } else {
-        res.send(`
-        <h1>Welcome!</h1>
-        <a href="/createUser">Sign Up</a>
-        <a href="/login">Login</a>
-      `);
-    }
-});
+    res.render('index', { 
+      authenticated: req.session.authenticated, 
+      username: req.session.username
+    });
+  });
 
 app.get('/nosql-injection', async (req, res) => {
     var username = req.query.user;
@@ -166,9 +175,14 @@ app.post('/submitUser', async (req, res) => {
         });
 
     const validationResult = schema.validate({ username, password, email });
+    // if (validationResult.error != null) {
+    //     console.log(validationResult.error);
+    //     res.redirect("/createUser");
+    //     return;
+    // }
     if (validationResult.error != null) {
         console.log(validationResult.error);
-        res.redirect("/createUser");
+        res.render("signup"); // Render the signup.ejs template
         return;
     }
     const existingUser = await userCollection.findOne({ email }); 
@@ -252,6 +266,29 @@ app.get('/logout', (req, res) => {
 });
 
 
+// app.get('/members', (req, res) => {
+//     if (!req.session.authenticated) {
+//         res.redirect('/');
+//         return;
+//     }
+
+//     const images = [
+//         { id: 1, src: '/gandalf.jpg', name: 'Gandalf' },
+//         { id: 2, src: '/hermoine.jpg', name: 'Hermoine' },
+//         { id: 3, src: '/merlin.jpg', name: 'Merlin'}
+//     ];
+
+//     const randomIndex = Math.floor(Math.random() * images.length);
+//     const selected = images[randomIndex];
+
+//     res.send(`
+//     <h1>Hello, ${req.session.username}</h1> 
+//     <h2>Members Only Area</h2>
+//     <h3>Your Random Wizard: ${selected.name}</h3>
+//     <img src="${selected.src}" width="250px">
+//     <h3><a href="/logout">Logout</a></h3>
+//   `);
+// });
 app.get('/members', (req, res) => {
     if (!req.session.authenticated) {
         res.redirect('/');
@@ -263,27 +300,80 @@ app.get('/members', (req, res) => {
         { id: 2, src: '/hermoine.jpg', name: 'Hermoine' },
         { id: 3, src: '/merlin.jpg', name: 'Merlin'}
     ];
+    res.render('members', { images, username: req.session.username }); 
+});
 
-    const randomIndex = Math.floor(Math.random() * images.length);
-    const selected = images[randomIndex];
+const isAdmin = (req, res, next) => {
+    function isAdmin(req, res, next) {
+        if (req.session.authenticated && req.session.userType === "admin") {
+          next(); // User is admin, proceed to the /admin route
+        } else {
+          if (req.session.authenticated) {
+            // Authenticated but not admin
+            res.status(403).send("Forbidden: You are not authorized to access this page.");
+          } else {
+            // Not authenticated
+            res.redirect("/login"); 
+          }
+        }
+      }
+};
 
-    res.send(`
-    <h1>Hello, ${req.session.username}</h1> 
-    <h2>Members Only Area</h2>
-    <h3>Your Random Wizard: ${selected.name}</h3>
-    <img src="${selected.src}" width="250px">
-    <h3><a href="/logout">Logout</a></h3>
-  `);
+app.get('/admin', isAdmin, async (req, res) => { // use middleware 
+    try {
+      const users = await userCollection.find({}).toArray();
+      res.render('admin', { users }); // Render admin.ejs template
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Internal Server Error");
+    }
+});
+
+// Promote Route
+app.get('/promote/:userId', isAdmin, async (req, res) => { //isAdmin middleware
+    try {
+        const userId = req.params.userId;
+
+        await userCollection.updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: { userType: 'admin' } }
+        );
+        
+        res.redirect('/admin');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+// Demote Route
+app.get('/demote/:userId', isAdmin, async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        await userCollection.updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: { userType: 'user' } }
+        );
+
+        res.redirect('/admin');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 
 app.use(express.static(__dirname + "/public"));
 
-app.get("*", (req, res) => {
+// app.get("*", (req, res) => {
+//     res.status(404);
+//     res.send("<h3>Page not found - 404</h3>");
+// })
+app.get('*', (req, res) => {
     res.status(404);
-    res.send("<h3>Page not found - 404</h3>");
-})
-
+    res.render('404');  // Render the 404.ejs template
+});
 app.listen(port, () => {
     console.log("Node application listening on port " + port);
 }); 

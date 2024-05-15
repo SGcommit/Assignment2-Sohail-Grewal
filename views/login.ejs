@@ -1,0 +1,17 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log In</title>
+</head>
+<body>
+    <%- include('templates/header') %>
+    <h1>Log In</h1>
+    <form action="/loggingin" method="post">
+        <input name="email" type="text" placeholder="email"><br>
+        <input name="password" type="password" placeholder="password"><br>
+        <button>Submit</button>
+    </form>
+    <%- include('templates/footer') %>
+</body>
+</html>

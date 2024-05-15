@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+</head>
+<body>
+  <%- include('templates/header') %>
+
+  <h1>Admin Panel</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Type</th>
+        <th>Action</th> 
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(user => { %>
+        <tr>
+          <td><%= user.username %></td>
+          <td><%= user.email %></td>
+          <td><%= user.userType %></td> 
+          <td>
+            <% if (user.userType === 'user') { %>
+              <a href="/promote/<%= user._id %>">Promote</a>
+            <% } else { %>
+              <a href="/demote/<%= user._id %>">Demote</a>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <%- include('templates/footer') %>
+</body>
+</html>

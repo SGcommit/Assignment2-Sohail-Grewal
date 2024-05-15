@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome</title>
+</head>
+<body>
+    <%- include('templates/header') %>
+    <h1><%= authenticated ? `Hello, ${username}` : 'Welcome!' %></h1>
+  <% if (authenticated) { %>
+    <a href="/members">Members Area</a>
+    <a href="/logout">Logout</a>
+  <% } else { %>
+    <a href="/signup">Sign Up</a>
+    <a href="/login">Login</a>
+  <% } %>
+  <%- include('templates/footer') %>
+</body>
+</html>
